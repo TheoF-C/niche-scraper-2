@@ -2,9 +2,10 @@ import config
 import csv
 import requests
 import json
+import lxml.html
 
 from nscraper import NScraper
-from page_paths import PATHS
+from page_actions import ACTIONS
 
 api_key = config.API_KEY
 
@@ -43,6 +44,20 @@ FIELDS = [
 ]
 
 
+def get_proxies():
+    url = 'https://free-proxy-list.net/'
+
+    response = requests.get(url)
+    parser = lxml.html.fromstring(response.text)
+    proxies = []
+    for i in parser.xpath('//tbody/tr')[:100]:
+        if i.xpath('.//td[7][contains(text(),"yes")]'):
+            proxy = ":".join([i.xpath('.//td[1]/text()')[0], i.xpath('.//td[2]/text()')[0]])
+            proxies.append(proxy)
+
+    return proxies
+
+
 def write_header():
     with open("data_main.csv", 'a') as csvfile:
         write = csv.writer(csvfile)
@@ -54,10 +69,10 @@ def get_coords(row):
     auto_url = "https://maps.googleapis.com/maps/api/place/queryautocomplete/json?"
     geo_url = "https://maps.googleapis.com/maps/api/geocode/json?"
 
-    college = row['name']
-    college = college.replace(" ", "+")
-
     try:
+        college = row['name']
+        college = college.replace(" ", "+")
+
         auto_r = requests.get(f'{auto_url}input={college},%20{row["area"]},%20{row["state"]}&key={api_key}')
         auto_r = json.loads(auto_r.text)
         predicted = auto_r["predictions"][0]["place_id"]
@@ -76,15 +91,7 @@ def get_coords(row):
 
 def main():
 
-    # write_header()
-    """
-    with open("data_main.csv", 'r') as csvfile:
-        reader = list(csv.reader(csvfile))
-        names = [row[0] if row else None for row in reader]
-
-    print(names.index(None))
-    return
-    """
+    write_header()
 
     nScraper = NScraper(config.HEADERS, delay=5)
 
@@ -93,9 +100,9 @@ def main():
     print("-----------------------")
 
     for i in range(1):
-        i += 53
+        i += 50
+        nScraper.compile_colleges(start=i, pages=i)
         try:
-            nScraper.compile_colleges(start=i, pages=i)
             print(f'page {i} loaded.')
         except Exception:
             print(f'error on page {i}.')
@@ -103,6 +110,8 @@ def main():
     print("-----------------------")
     print("processing colleges.")
     print("-----------------------")
+
+    print(nScraper.get_colleges())
 
     def process(value):
         print(f'{value["name"]} loading.')
@@ -112,9 +121,8 @@ def main():
             writer.writerow(value)
         csvfile.close()
 
-    nScraper.scrape(actions=PATHS, sync=True, thread=process)
+    nScraper.scrape(actions=ACTIONS, thread=process)
 
 
 if __name__ == "__main__":
     main()
-

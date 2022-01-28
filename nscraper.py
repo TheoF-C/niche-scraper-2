@@ -1,7 +1,8 @@
 import time
 import requests
 from bs4 import BeautifulSoup
-from page_paths import PATHS
+from page_actions import ACTIONS
+from college import College
 
 
 class NScraper:
@@ -19,19 +20,19 @@ class NScraper:
         if pages is None:
             pages = self.PAGE_LIM
 
-        url = "https://www.niche.com/colleges/search/best-colleges/"
+        url = "https://webcache.googleusercontent.com/search?q=cache:https://www.niche.com/colleges/search/best-colleges/"
 
         for i in range(start, pages + 1):
+            print(i)
             response = requests.get(url, headers=self.HEADERS, params=(('page', str(i)),))
+            print(response)
             soup = BeautifulSoup(response.content, 'html.parser')
             results = soup.find_all("li", {"class": "search-results__list__item"})
             names = [college.find("section")["aria-label"] for college in results]
-            locations = [college.find_all("li", {"class": "search-result-tagline__item"})[1].text for college in
-                         results]
-            self.add_colleges(names, locations)
+            self.add_colleges(names)
             time.sleep(self.DELAY)
 
-    def scrape(self, actions: list, data=None, sync=False, thread=None) -> None:
+    def scrape(self, actions: list, data=None, thread=None) -> None:
         """
         scrapes data according to actions parameter off of colleges according to the colleges parameter
         the colleges parameter will use colleges in self.data by default (still needs to be implemented)
@@ -43,43 +44,35 @@ class NScraper:
         else:
             self.add_colleges(data)
 
-        base_url = "https://www.niche.com/colleges/"
+        base_url = "https://webcache.googleusercontent.com/search?q=cache:https://www.niche.com/colleges/"
 
-        for college, value in data.items():
-            response = requests.get(base_url + college, headers=self.HEADERS)
+        for college_name, college in data.items():
+            response = requests.get(base_url + college_name, headers=self.HEADERS)
             soup = BeautifulSoup(response.content, 'html.parser')
-            start = time.perf_counter()
 
             for action in actions:
-                if action == "popular_majors":
-                    majors = self.subject_scrape(soup)
-                    for i in range(len(majors)):
-                        value[f"major_{i}_name"] = majors[i][0]
-                        value[f"major_{i}_value"] = majors[i][1]
-                try:
+                instruction = ACTIONS[action][0]
 
-                    pass
-                    value[action] = self.bucket_scrape(soup, PATHS[action][0], PATHS[action][1])
-                except AttributeError:
-                    value[action] = None
-                    print(college + ":")
-                    print(f'error {action} not found')
-
-            self.data[college] = self.format_data(value)
+                if instruction == 0 or instruction == 3:  # general
+                    college.add_data(action, self.bucket_scrape(soup, ACTIONS[action][1], ACTIONS[action][2]))
+                elif instruction == 1:  # location
+                    college.add_location(self.location_scrape(soup))
+                elif instruction == 2:  # majors
+                    college.add_major(self.major_scrape(soup, ACTIONS[action][1]))
 
             if thread is not None:
-                thread(value)
+                thread(college.data)
 
-            if sync:
-                time.sleep(self.DELAY - round(time.perf_counter() - start, 2))
-            else:
-                time.sleep(self.DELAY)
+            time.sleep(self.DELAY)
 
     @staticmethod
     def bucket_scrape(soup, eid: str, label: str):
         """helper function to self.scrape responsible for finding data point given PATHS address"""
 
         # locates bucket where the data is stored
+        if soup.find(id=eid) is None:
+            print(soup)
+
         soup = soup.find(id=eid).find("div", {"class": "profile__buckets"}).find_all("span")
         heated_soup = None
 
@@ -95,42 +88,17 @@ class NScraper:
         return None
 
     @staticmethod
-    def subject_scrape(soup):
-        soup = soup.find(id="majors").find_all("li", {"class": "popular-entities-list-item"})
-        majors = [[college.find("div", {"class": "popular-entity__name"}).text,
-                   college.find("div", {"class": "popular-entity-descriptor"}).text] for college in soup[:3]]
-        if len(majors) < 3:
-            majors += [None] * (3 - len(majors))
-        return majors
+    def location_scrape(soup):
+        return soup.find_all("li", {"class": "postcard__attr postcard-fact"})[1].text
 
     @staticmethod
-    def format_data(data: dict) -> dict:
-        """formats and cleans college data"""
-
-        def format_score(type):
-            key = type + "_range"
-            if key in data and data[key] is not None:
-                score_range = data[key].split("-")
-                data[type + "_low"] = int(score_range[0])
-                data[type + "_high"] = int(score_range[1])
-                del data[key]
-
-        for key in data:
-            if data[key] == 'No data available \xa0':
-                data[key] = None
-            elif isinstance(data[key], str):
-                processed = data[key].translate({ord(c): None for c in "$%,"})
-                if processed.isdigit():
-                    data[key] = int(processed)
-
-        format_score("sat")
-        format_score("act")
-        return data
-
-    def format_all(self) -> None:
-        """runs self.format_data on all colleges stored in self.data"""
-        for college in self.data:
-            self.format_data(self.data[college])
+    def major_scrape(soup, amount):
+        soup = soup.find(id="majors").find_all("li", {"class": "popular-entities-list-item"})
+        majors = [[college.find("div", {"class": "popular-entity__name"}).text,
+                   college.find("div", {"class": "popular-entity-descriptor"}).text] for college in soup[:amount]]
+        if len(majors) < amount:
+            majors += [None] * (amount - len(majors))
+        return majors
 
     @staticmethod
     def process_name(name: str) -> str:
@@ -142,12 +110,10 @@ class NScraper:
         """returns a list of all colleges stored in self.data"""
         return list(self.data.keys())
 
-    def add_colleges(self, colleges: list, locations=None) -> None:
+    def add_colleges(self, colleges: list) -> None:
         """adds colleges to self.data"""
-        for i, college in enumerate(colleges):
-            self.data[self.process_name(college)] = {'name': college,
-                                                     'area': locations[i][:-5].title() if locations else None,
-                                                     'state': locations[i][-3:-1] if locations else None}
+        for college in colleges:
+            self.data[self.process_name(college)] = College(college)
 
     def del_colleges(self, colleges: list) -> None:
         """deletes colleges from self.data"""
