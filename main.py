@@ -2,7 +2,6 @@ import config
 import csv
 import requests
 import json
-import lxml.html
 
 from nscraper import NScraper
 from page_actions import ACTIONS
@@ -42,20 +41,6 @@ FIELDS = [
     "latitude",
     "longitude"
 ]
-
-
-def get_proxies():
-    url = 'https://free-proxy-list.net/'
-
-    response = requests.get(url)
-    parser = lxml.html.fromstring(response.text)
-    proxies = []
-    for i in parser.xpath('//tbody/tr')[:100]:
-        if i.xpath('.//td[7][contains(text(),"yes")]'):
-            proxy = ":".join([i.xpath('.//td[1]/text()')[0], i.xpath('.//td[2]/text()')[0]])
-            proxies.append(proxy)
-
-    return proxies
 
 
 def write_header():
