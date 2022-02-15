@@ -23,7 +23,6 @@ class NScraper:
         url = "https://webcache.googleusercontent.com/search?q=cache:https://www.niche.com/colleges/search/best-colleges/"
 
         for i in range(start, pages + 1):
-            print(i)
             response = requests.get(url, headers=self.HEADERS, params=(('page', str(i)),))
             print(response)
             soup = BeautifulSoup(response.content, 'html.parser')
