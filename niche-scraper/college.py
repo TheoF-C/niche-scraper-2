@@ -6,8 +6,7 @@ class College:
 
     @staticmethod
     def clean(data):
-        if data == 'No self.data available \xa0':
-            print(data)
+        if data == 'No data available \xa0':
             return None
         elif isinstance(data, str):
             processed = data.translate({ord(c): None for c in "$%,"})
@@ -21,9 +20,6 @@ class College:
         self.data[score_type + "_high"] = int(score_range[1])
 
     def add_data(self, action, data):
-        if action in ["sat", "act"]:
-            self.add_score(action, data)
-            return
         self.data[action] = self.clean(data)
 
     def add_location(self, data):

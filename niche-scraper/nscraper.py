@@ -53,12 +53,14 @@ class NScraper:
             for action in actions:
                 instruction = ACTIONS[action][0]
 
-                if instruction == 0 or instruction == 3:  # general
+                if instruction == 0:  # general
                     college.add_data(action, self.bucket_scrape(soup, ACTIONS[action][1], ACTIONS[action][2]))
                 elif instruction == 1:  # location
                     college.add_location(self.location_scrape(soup))
                 elif instruction == 2:  # majors
                     college.add_major(self.major_scrape(soup, ACTIONS[action][1]))
+                elif instruction == 3:  # scores
+                    college.add_score(action, self.bucket_scrape(soup, ACTIONS[action][1], ACTIONS[action][2]))
 
             if thread is not None:
                 thread(college.data)

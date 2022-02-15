@@ -8,39 +8,13 @@ from page_actions import ACTIONS
 
 api_key = config.API_KEY
 
-FIELDS = [
-    "name",
-    "area",
-    "state",
-    "acceptance",  # %
-    "deadline",  # Date
-    "application fee",  # $
-    "sat/act_required",
-    "gpa_required",
-    "early_decision",
-    "common_app",
-    "cost",  # $
-    "aid_amount",  # $
-    "aid_percent",  # %
-    "enrollment",
-    "part_time_undergrads",
-    "undergrads_over_25",  # %
-    "pell_grant",  # %
-    "varsity_athletes",  # %
-    "freshman_on_campus",  # %
-    "median_earnings_after_6_years",  # $ / Year
-    "graduation_rate",  # %
-    "employed_2_years_after",
-    "major_1",
-    "major_2",
-    "major_3",
-    "sat_low",  # Score Range
-    "sat_high",  # Score Range
-    "act_low",  # Score Range
-    "act_high",  # Score Range
-    "latitude",
-    "longitude"
-]
+FIELDS = ['name', 'area', 'state', 'acceptance', 'deadline', 'application fee',
+          'sat/act_required', 'gpa_required', 'early_decision', 'common_app',
+          'cost', 'aid_amount', 'aid_percent', 'enrollment', 'part_time_undergrads',
+          'undergrads_over_25', 'pell_grant', 'varsity_athletes', 'freshman_on_campus',
+          'median_earnings_after_6_years', 'graduation_rate', 'employed_2_years_after',
+          'major_1', 'major_1_graduates', 'major_2', 'major_2_graduates', 'major_3',
+          'major_3_graduates', 'sat_low', 'sat_high', 'act_low', 'act_high', 'latitude', 'longitude']
 
 
 def write_header():
@@ -84,7 +58,7 @@ def main():
     print("-----------------------")
 
     for i in range(1):
-        i += 50
+        i += 1
         nScraper.compile_colleges(start=i, pages=i)
         try:
             print(f'page {i} loaded.')
