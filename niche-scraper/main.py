@@ -18,7 +18,7 @@ FIELDS = ['name', 'area', 'state', 'acceptance', 'deadline', 'application fee',
 
 
 def write_header():
-    with open("data_main.csv", 'a') as csvfile:
+    with open("data.csv", 'a') as csvfile:
         write = csv.writer(csvfile)
         write.writerow(FIELDS)
     csvfile.close()
@@ -69,12 +69,10 @@ def main():
     print("processing colleges.")
     print("-----------------------")
 
-    print(nScraper.get_colleges())
-
     def process(value):
         print(f'{value["name"]} loading.')
         get_coords(value)
-        with open("data_main.csv", 'a') as csvfile:
+        with open("data.csv", 'a') as csvfile:
             writer = csv.DictWriter(csvfile, fieldnames=value.keys())
             writer.writerow(value)
         csvfile.close()
